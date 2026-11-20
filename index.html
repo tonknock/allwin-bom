@@ -224,7 +224,7 @@ td b{font-family:'JetBrains Mono',monospace;font-weight:600}
 <div><label for="pfOd">Ø นอก (mm)</label><input id="pfOd" inputmode="decimal" placeholder="25.4" oninput="pfSearch()" autocomplete="off"></div>
 <div id="pfBWrap"><label for="pfT">หนา (mm)</label><input id="pfT" inputmode="decimal" placeholder="1.2" oninput="pfSearch()" autocomplete="off"></div>
 <div><label for="pfL">ยาว (mm)</label><input id="pfL" inputmode="decimal" placeholder="362.5" oninput="pfSearch()" autocomplete="off"></div>
-<div><label for="pfTol">± ยอมรับ</label><input id="pfTol" inputmode="decimal" value="1" oninput="pfSearch()" autocomplete="off"></div>
+<div id="pfTolWrap"><label for="pfTol">± หน้ากว้าง</label><input id="pfTol" inputmode="decimal" value="1" oninput="pfSearch()" autocomplete="off"></div>
 <div><label>ค้นใน</label><div class="segmented"><button id="pfScAll" onclick="pfSetScope('all')">ทั้ง 2 รุ่น</button><button id="pfScCur" onclick="pfSetScope('cur')">รุ่นที่เปิดอยู่</button></div></div>
 </div>
 <div class="pf-sizes" id="pfSizes"></div>
@@ -318,9 +318,9 @@ renderModel(currentModel);
 let pfScope='all';
 let pfKind='pipe';
 const pfKinds={
- pipe:{la:'Ø นอก (mm)',lb:'หนา (mm)',ll:'ยาว (mm)',pa:'25.4',pb:'1.2',pl:'362.5',hint:'พิมพ์ 25.4x1.2x362.5 ในช่อง Ø แล้วแยกให้เอง',empty:'ท่อ'},
- steel:{la:'หนา (mm)',lb:'หน้ากว้าง (mm)',ll:'ยาว (mm)',pa:'2',pb:'68',pl:'1219',hint:'พิมพ์ 2x68x1219 ในช่องหนา แล้วแยกให้เอง',empty:'แผ่นเหล็ก'},
- shaft:{la:'Ø เพลา (mm)',lb:'',ll:'ยาว (mm)',pa:'12',pb:'',pl:'466',hint:'พิมพ์ 12x466 ในช่อง Ø แล้วแยกให้เอง',empty:'เพลา'}
+ pipe:{la:'Ø นอก (mm)',lb:'หนา (mm)',ll:'ยาวไม่เกิน (mm)',pa:'25.4',pb:'1.2',pl:'362.5',hint:'พิมพ์ 25.4x1.2x362.5 ในช่อง Ø แล้วแยกให้เอง',empty:'ท่อ'},
+ steel:{la:'หนา (mm)',lb:'หน้ากว้าง (mm)',ll:'ยาวไม่เกิน (mm)',pa:'2',pb:'68',pl:'1219',hint:'พิมพ์ 2x68x1219 ในช่องหนา แล้วแยกให้เอง',empty:'แผ่นเหล็ก'},
+ shaft:{la:'Ø เพลา (mm)',lb:'',ll:'ยาวไม่เกิน (mm)',pa:'12',pb:'',pl:'466',hint:'พิมพ์ 12x466 ในช่อง Ø แล้วแยกให้เอง',empty:'เพลา'}
 };
 function pfSizeHint(){return 'กรอกอย่างใดอย่างหนึ่งก็ได้ · '+pfKinds[pfKind].hint}
 function pfParse(it,kind){let m;const sp=String(it.spec||'');
@@ -354,7 +354,7 @@ function pfSizeChips(){const map={};pfAll(pfKind).forEach(r=>{const k=pfKind==='
 function pfSearch(){
  const K=pfKinds[pfKind];const oI=document.getElementById('pfOd'),tI=document.getElementById('pfT'),lI=document.getElementById('pfL');
  document.querySelector('label[for=pfOd]').textContent=K.la;document.querySelector('label[for=pfT]').textContent=K.lb;document.querySelector('label[for=pfL]').textContent=K.ll;
- oI.placeholder=K.pa;tI.placeholder=K.pb;lI.placeholder=K.pl;document.getElementById('pfBWrap').style.display=pfKind==='shaft'?'none':'';
+ oI.placeholder=K.pa;tI.placeholder=K.pb;lI.placeholder=K.pl;document.getElementById('pfBWrap').style.display=pfKind==='shaft'?'none':'';document.getElementById('pfTolWrap').style.display=pfKind==='steel'?'':'none';
  if(/[x×*]/i.test(oI.value)){const n=(oI.value.match(/\d+(?:\.\d+)?/g)||[]).map(Number);
   if(pfKind==='steel'){if(n.length>=2){oI.value=n[0];tI.value=n[1];if(n[2]!==undefined)lI.value=n[2]}}
   else if(pfKind==='shaft'){if(n.length>=2){oI.value=n[0];lI.value=n[1]}}
@@ -365,10 +365,10 @@ function pfSearch(){
  const out=document.getElementById('pfOut');
  if(isNaN(a)&&isNaN(b)&&isNaN(L)){out.innerHTML='<div class="pf-empty">กรอกอย่างน้อย 1 ช่อง หรือกดขนาดด้านบน</div>';return}
  const tolB=pfKind==='steel'?tol:0.05;
- let rows=pfAll(pfKind).filter(r=>(pfScope==='all'||r.model===currentModel)&&(isNaN(a)||Math.abs(r.a-a)<0.05)&&(isNaN(b)||Math.abs(r.b-b)<=tolB+1e-9)&&(isNaN(L)||Math.abs(r.it.len-L)<=tol+1e-9));
+ let rows=pfAll(pfKind).filter(r=>(pfScope==='all'||r.model===currentModel)&&(isNaN(a)||Math.abs(r.a-a)<0.05)&&(isNaN(b)||Math.abs(r.b-b)<=tolB+1e-9)&&(isNaN(L)||r.it.len<=L+1e-9));
  rows.forEach(r=>{r.dL=isNaN(L)?0:r.it.len-L;r.dB=isNaN(b)?0:r.b-b});
  rows.sort((x,y)=>Math.abs(x.dB)-Math.abs(y.dB)||Math.abs(x.dL)-Math.abs(y.dL)||x.it.len-y.it.len||x.it.pn.localeCompare(y.it.pn));
- if(!rows.length){out.innerHTML=`<div class="pf-empty">ไม่พบ${K.empty}ที่ตรง${(isNaN(L)&&isNaN(b))?'':' — ลองเพิ่ม ± ยอมรับ ให้กว้างขึ้น'}</div>`;return}
+ if(!rows.length){out.innerHTML=`<div class="pf-empty">ไม่พบ${K.empty}ที่ตรง${isNaN(L)?'':' ที่ยาวไม่เกิน '+L+' mm'}</div>`;return}
  const dupKey=r=>[r.model,r.a,r.b,r.it.len].join('|');const dupCnt={};rows.forEach(r=>dupCnt[dupKey(r)]=(dupCnt[dupKey(r)]||0)+1);
  const dupGroups=Object.entries(dupCnt).filter(([k,c])=>c>1);
  let note='';if(dupGroups.length){note=`<div class="pf-note">⚠ มี P/N ที่สเปคเหมือนกันทุกอย่าง ต้องดู Main Assembly หรือชื่อเพื่อแยก: `+dupGroups.map(([k])=>rows.filter(r=>dupKey(r)===k).map(r=>`<b class="mono">${r.it.pn}</b> (${r.main}${r.it.name?' · '+r.it.name:''})`).join(' / ')).join(' &nbsp;|&nbsp; ')+`</div>`}
